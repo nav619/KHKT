@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VP Soul | AI Đồng Hành</title>
+    <!-- Tải Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tải Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/phosphor-icons"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#6366f1', // Indigo 500
+                        'secondary': '#818cf8', // Indigo 400
+                        'accent': '#a78bfa', // Violet 400
+                        'surface': '#f9fafb', // Gray 50
+                        'card': '#ffffff',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .chat-bubble-ai {
+            background-color: #ede9fe; /* Violet 100 */
+            border-radius: 1.5rem 1.5rem 1.5rem 0.5rem;
+        }
+        .chat-bubble-user {
+            background-color: #a78bfa; /* Accent/Violet 400 */
+            border-radius: 1.5rem 1.5rem 0.5rem 1.5rem;
+        }
+        .menu-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+        }
+        .loading-dot {
+            animation: bounce 1s infinite alternate;
+        }
+        .loading-dot:nth-child(2) { animation-delay: 0.3s; }
+        .loading-dot:nth-child(3) { animation-delay: 0.6s; }
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row"> <!-- Đã thêm md:flex-row cho desktop layout -->
+
+    <!-- Sidebar Menu (Desktop) / Bottom Menu (Mobile) -->
+    <!-- Đã thêm md:top-0 và md:left-0 để cố định ở góc trên bên trái trên desktop -->
+    <div id="nav-menu" class="fixed inset-x-0 bottom-0 bg-white border-t border-gray-100 shadow-lg md:fixed md:top-0 md:left-0 md:w-64 md:border-r md:shadow-xl md:flex md:flex-col md:h-screen md:p-4 z-10">
+        <div class="hidden md:block text-2xl font-bold text-primary mb-8 mt-4 text-center">VP Soul</div>
+        <div class="flex justify-around p-2 md:flex-col md:space-y-4 md:p-0">
+            <button onclick="changeView('dashboard')" class="menu-item flex flex-col items-center p-3 text-gray-600 transition duration-300 md:flex-row md:space-x-3 md:rounded-xl hover:bg-surface hover:text-primary active:bg-primary active:text-white">
+                <i class="ph ph-house text-2xl"></i>
+                <span class="text-xs md:text-base md:font-medium">Dashboard</span>
+            </button>
+            <button onclick="changeView('chat')" class="menu-item flex flex-col items-center p-3 text-gray-600 transition duration-300 md:flex-row md:space-x-3 md:rounded-xl hover:bg-surface hover:text-primary active:bg-primary active:text-white">
+                <i class="ph ph-chat-circle-dots text-2xl"></i>
+                <span class="text-xs md:text-base md:font-medium">AI Đồng Hành</span>
+            </button>
+            <button onclick="changeView('mood')" class="menu-item flex flex-col items-center p-3 text-gray-600 transition duration-300 md:flex-row md:space-x-3 md:rounded-xl hover:bg-surface hover:text-primary active:bg-primary active:text-white">
+                <i class="ph ph-smiley-wink text-2xl"></i>
+                <span class="text-xs md:text-base md:font-medium">Tâm Trạng</span>
+            </button>
+            <button onclick="changeView('schedule')" class="menu-item flex flex-col items-center p-3 text-gray-600 transition duration-300 md:flex-row md:space-x-3 md:rounded-xl hover:bg-surface hover:text-primary active:bg-primary active:text-white">
+                <i class="ph ph-calendar-plus text-2xl"></i>
+                <span class="text-xs md:text-base md:font-medium">Lịch Trình</span>
+            </button>
+            <button onclick="changeView('game')" class="menu-item flex flex-col items-center p-3 text-gray-600 transition duration-300 md:flex-row md:space-x-3 md:rounded-xl hover:bg-surface hover:text-primary active:bg-primary active:text-white">
+                <i class="ph ph-puzzle-piece text-2xl"></i>
+                <span class="text-xs md:text-base md:font-medium">Thư Giãn</span>
+            </button>
+        </div>
+        <div class="mt-auto hidden md:block text-xs text-gray-400 text-center pt-4 border-t border-gray-100">
+            User ID: <span id="display-user-id" class="font-mono text-gray-600">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <!-- Đã thêm md:ml-64 để đẩy nội dung sang phải trên desktop, chừa chỗ cho sidebar 64 đơn vị -->
+    <main class="flex-grow p-4 pb-20 md:p-8 bg-surface md:ml-64">
+        <header class="flex justify-between items-center mb-6 md:mb-10">
+            <h1 id="page-title" class="text-3xl font-extrabold text-gray-900 transition duration-300">Dashboard</h1>
+            <button onclick="toggleAudio()" class="bg-card shadow-lg p-3 rounded-full text-primary hover:bg-primary hover:text-white transition duration-300">
+                <i id="audio-icon" class="ph ph-speaker-simple-high text-xl"></i>
+            </button>
+        </header>
+
+        <!-- Dynamic View Content -->
+        <div id="content-container" class="space-y-6">
+            <!-- Dashboard View -->
+            <div id="view-dashboard" class="view-content transition duration-500 ease-in-out">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Positivity Score Card -->
+                    <div class="lg:col-span-2 bg-gradient-to-r from-primary to-accent text-white p-6 rounded-2xl shadow-xl">
+                        <div class="flex justify-between items-start">
+                            <h2 class="text-2xl font-bold">Điểm Tích Cực Tuần</h2>
+                            <i class="ph ph-sparkle text-5xl opacity-80"></i>
+                        </div>
+                        <p class="text-sm opacity-90 mt-1">Đánh giá mức độ tự chăm sóc bản thân của bạn.</p>
+                        <div class="mt-4 text-6xl font-extrabold" id="dashboard-score">0</div>
+                        <p class="mt-2 text-lg font-medium" id="dashboard-score-message">Hãy bắt đầu hành trình tích cực của bạn!</p>
+                    </div>
+
+                    <!-- Daily Quote/Reminder Card -->
+                    <div class="lg:col-span-1 bg-card p-6 rounded-2xl shadow-xl border border-gray-100">
+                        <h2 class="text-xl font-bold text-primary">Nhắc Nhở Hôm Nay</h2>
+                        <i class="ph ph-clock-clockwise text-4xl text-accent my-3"></i>
+                        <p class="text-gray-700 font-medium" id="daily-reminder">Hít thở sâu 3 lần. Bạn làm được mà!</p>
+                        <button onclick="changeView('mood')" class="mt-4 text-sm font-semibold text-primary hover:text-accent transition duration-300 flex items-center">
+                            Check-in ngay <i class="ph ph-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Latest Check-in -->
+                <div class="mt-6 bg-card p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Nhật Ký Tâm Trạng Gần Nhất</h2>
+                    <div id="latest-mood-entry" class="text-gray-600 italic">Chưa có dữ liệu check-in nào.</div>
+                </div>
+            </div>
+
+            <!-- AI Chat View -->
+            <!-- Đã chỉnh chiều cao cố định h-screen cho chat box trên desktop, trừ đi phần header và padding -->
+            <div id="view-chat" class="view-content hidden transition duration-500 ease-in-out flex flex-col h-full md:h-[calc(100vh-10rem)]">
+                <div id="chat-box" class="flex-grow p-4 space-y-4 overflow-y-auto bg-card rounded-2xl shadow-xl border border-gray-100">
+                    <!-- AI Greeting -->
+                    <div class="flex justify-start">
+                        <div class="chat-bubble-ai max-w-xs md:max-w-md p-4 shadow-md text-gray-800">
+                            Chào bạn! Mình là AI Đồng Hành của bạn. Hôm nay bạn muốn sẻ chia điều gì? Mình luôn sẵn lòng lắng nghe mà không phán xét.
+                        </div>
+                    </div>
+                    <!-- Chat History loads here -->
+                </div>
+
+                <div class="mt-4 flex space-x-3">
+                    <input type="text" id="chat-input" class="flex-grow p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary transition duration-300" placeholder="Viết tâm sự của bạn (hoặc nhấn giữ để nói)...">
+                    <button id="voice-button" onmousedown="startRecording()" onmouseup="stopRecording(false)" ontouchstart="startRecording()" ontouchend="stopRecording(false)" class="p-3 bg-secondary text-white rounded-xl shadow-lg hover:bg-primary transition duration-300 active:scale-95">
+                        <i class="ph ph-microphone text-xl" id="voice-icon"></i>
+                    </button>
+                    <button onclick="handleChat(false)" class="p-3 bg-primary text-white rounded-xl shadow-lg hover:bg-accent transition duration-300 active:scale-95">
+                        <i class="ph ph-paper-plane-tilt text-xl"></i>
+                    </button>
+                </div>
+                <p id="chat-status" class="text-sm text-center text-gray-500 mt-2 h-4"></p>
+            </div>
+
+            <!-- Mood/Quiz View -->
+            <div id="view-mood" class="view-content hidden transition duration-500 ease-in-out bg-card p-6 rounded-2xl shadow-xl border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Bạn Cảm Thấy Thế Nào Hôm Nay?</h2>
+                <div id="mood-form" class="space-y-6">
+                    <!-- 1. Mood Level Selector -->
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">1. Mức độ Năng Lượng/Tích Cực:</label>
+                        <div class="flex justify-between items-center text-center">
+                            <button data-value="1" onclick="selectMood(1)" class="mood-select p-3 w-1/5 border rounded-xl hover:bg-red-100 transition duration-200">
+                                <i class="ph ph-smiley-sad text-4xl text-red-500"></i><span class="text-sm mt-1 block">Tệ</span>
+                            </button>
+                            <button data-value="2" onclick="selectMood(2)" class="mood-select p-3 w-1/5 border rounded-xl hover:bg-yellow-100 transition duration-200">
+                                <i class="ph ph-smiley-meh text-4xl text-yellow-500"></i><span class="text-sm mt-1 block">Ổn</span>
+                            </button>
+                            <button data-value="3" onclick="selectMood(3)" class="mood-select p-3 w-1/5 border rounded-xl hover:bg-blue-100 transition duration-200">
+                                <i class="ph ph-smiley text-4xl text-blue-500"></i><span class="text-sm mt-1 block">Bình Thường</span>
+                            </button>
+                            <button data-value="4" onclick="selectMood(4)" class="mood-select p-3 w-1/5 border rounded-xl hover:bg-green-100 transition duration-200">
+                                <i class="ph ph-smiley-wink text-4xl text-green-500"></i><span class="text-sm mt-1 block">Vui</span>
+                            </button>
+                            <button data-value="5" onclick="selectMood(5)" class="mood-select p-3 w-1/5 border rounded-xl hover:bg-primary-100 transition duration-200">
+                                <i class="ph ph-smiley-sticker text-4xl text-primary"></i><span class="text-sm mt-1 block">Cực Tốt</span>
+                            </button>
+                        </div>
+                        <input type="hidden" id="mood-value">
+                    </div>
+
+                    <!-- 2. Daily Challenge -->
+                    <div>
+                        <label class="block text-lg font-semibold text-gray-700 mb-3">2. Thử Thách Nhỏ (Bạn đã thực hiện điều tích cực nào hôm nay?):</label>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="challenge1" class="h-5 w-5 text-primary rounded border-gray-300 focus:ring-primary">
+                                <label for="challenge1" class="ml-3 text-gray-700">Uống đủ 2 lít nước.</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="challenge2" class="h-5 w-5 text-primary rounded border-gray-300 focus:ring-primary">
+                                <label for="challenge2" class="ml-3 text-gray-700">Dành 15 phút không dùng thiết bị điện tử.</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="challenge3" class="h-5 w-5 text-primary rounded border-gray-300 focus:ring-primary">
+                                <label for="challenge3" class="ml-3 text-gray-700">Nói "Cảm ơn" với ít nhất 1 người.</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Note -->
+                    <div>
+                        <label for="mood-note" class="block text-lg font-semibold text-gray-700 mb-3">3. Viết ra điều bạn đang nghĩ:</label>
+                        <textarea id="mood-note" rows="3" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-primary focus:border-primary transition duration-300" placeholder="Viết vài dòng về ngày hôm nay..."></textarea>
+                    </div>
+
+                    <button onclick="saveMoodCheckin()" id="save-mood-btn" class="w-full p-3 bg-primary text-white font-bold rounded-xl shadow-lg hover:bg-accent transition duration-300 active:scale-95 disabled:opacity-50" disabled>
+                        Lưu Check-in & Tính Điểm
+                    </button>
+                    <p id="mood-message" class="text-sm text-center text-green-600 mt-2"></p>
+                </div>
+            </div>
+
+            <!-- Scheduler View -->
+            <div id="view-schedule" class="view-content hidden transition duration-500 ease-in-out bg-card p-6 rounded-2xl shadow-xl border border-gray-100">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Tạo Lịch Trình Lý Tưởng</h2>
+                <p class="text-gray-600 mb-6">Hãy kể cho AI biết về cuộc sống của bạn để nhận lịch trình phù hợp nhé!</p>
+
+                <div id="schedule-input-form" class="space-y-4">
+                    <div>
+                        <label for="user-info" class="block text-lg font-semibold text-gray-700 mb-2">Thông tin (Sở thích, mục tiêu, áp lực, giờ ngủ/dậy):</label>
+                        <textarea id="user-info" rows="4" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-primary focus:border-primary transition duration-300" placeholder="Ví dụ: Thích đọc sách, muốn học thêm tiếng Anh, áp lực deadline, thường ngủ lúc 11h tối và dậy lúc 7h sáng."></textarea>
+                    </div>
+                    <button onclick="generateSchedule()" id="generate-schedule-btn" class="w-full p-3 bg-secondary text-white font-bold rounded-xl shadow-lg hover:bg-primary transition duration-300 active:scale-95">
+                        <i class="ph ph-magic-wand mr-2"></i> Tạo Lịch Trình Bằng AI
+                    </button>
+                    <p id="schedule-status" class="text-sm text-center text-gray-500 h-4"></p>
+                </div>
+
+                <div id="schedule-output" class="mt-8">
+                    <h3 class="text-xl font-bold text-accent mb-4 border-b pb-2">Lịch Trình AI Gợi Ý</h3>
+                    <div id="schedule-list" class="space-y-3">
+                        <p class="text-gray-500 italic">Lịch trình sẽ xuất hiện ở đây sau khi bạn cung cấp thông tin.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simple Game View (Breathing Exercise) -->
+            <div id="view-game" class="view-content hidden transition duration-500 ease-in-out bg-card p-6 rounded-2xl shadow-xl border border-gray-100 text-center">
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Hộp Thở - Thư Giãn Tức Thì</h2>
+                <p class="text-gray-600 mb-6">Thực hiện bài tập thở "4-7-8" để giảm căng thẳng. Hít vào 4 giây, Giữ 7 giây, Thở ra 8 giây.</p>
+
+                <div class="relative flex justify-center items-center h-64">
+                    <div id="breathing-circle" class="w-40 h-40 rounded-full bg-primary opacity-70 transition-all duration-400 ease-in-out flex items-center justify-center text-white text-xl font-bold shadow-2xl">
+                        Bắt Đầu
+                    </div>
+                </div>
+
+                <button onclick="startBreathing()" id="breathing-btn" class="mt-6 p-3 px-8 bg-accent text-white font-bold rounded-full shadow-lg hover:bg-primary transition duration-300 active:scale-95">
+                    <i class="ph ph-heartbeat mr-2"></i> Bắt Đầu Thở
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for Error/Confirmation (Instead of alert()) -->
+    <div id="custom-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm text-center transform transition-all duration-300 scale-100">
+            <h3 id="modal-title" class="text-xl font-bold text-primary mb-3">Thông Báo</h3>
+            <p id="modal-message" class="text-gray-700 mb-4">Nội dung thông báo.</p>
+            <button onclick="closeModal()" class="w-full p-2 bg-primary text-white font-semibold rounded-lg hover:bg-accent transition duration-300">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs and App Logic -->
+    <script type="module">
+        // MARK: --- FIREBASE IMPORTS AND INITIALIZATION ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, limit, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // Cấu hình Firebase và API Keys
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        const apiKey = "AIzaSyBXFHGNHzn_3gGxcOincQ4xhtrUDOBbO5k"; // API Key cho Gemini, sẽ được Canvas cung cấp
+        
+        let app, db, auth;
+        let userId = null;
+        let isAuthReady = false;
+        let chatHistory = [];
+
+        // MARK: --- UTILITY FUNCTIONS ---
+
+        /** Hiển thị modal thông báo tùy chỉnh thay cho alert() */
+        function showModal(title, message) {
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            document.getElementById('custom-modal').classList.remove('hidden');
+            document.getElementById('custom-modal').classList.add('flex');
+        }
+
+        /** Đóng modal thông báo */
+        window.closeModal = function() {
+            document.getElementById('custom-modal').classList.remove('flex');
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        /** Hiển thị trạng thái Loading */
+        function displayLoading(elementId, isLoading, message = "") {
+            const el = document.getElementById(elementId);
+            if (isLoading) {
+                el.innerHTML = `
+                    <span class="flex items-center justify-center text-sm font-medium text-primary">
+                        <span class="loading-dot w-2 h-2 bg-primary rounded-full mr-1"></span>
+                        <span class="loading-dot w-2 h-2 bg-primary rounded-full mr-1"></span>
+                        <span class="loading-dot w-2 h-2 bg-primary rounded-full"></span>
+                        ${message}
+                    </span>
+                `;
+            } else {
+                el.textContent = message;
+            }
+        }
+
+        /** Chuyển đổi giữa các View */
+        window.changeView = function(viewId) {
+            const views = document.querySelectorAll('.view-content');
+            views.forEach(view => {
+                const isTarget = view.id === `view-${viewId}`;
+                view.classList.toggle('hidden', !isTarget);
+                
+                // Cập nhật tiêu đề
+                const titleMap = {
+                    'dashboard': 'Dashboard',
+                    'chat': 'AI Đồng Hành',
+                    'mood': 'Tâm Trạng Check-in',
+                    'schedule': 'Lịch Trình Cá Nhân',
+                    'game': 'Thư Giãn & Game'
+                };
+                document.getElementById('page-title').textContent = titleMap[viewId] || 'Ứng Dụng Chữa Lành';
+                
+                // Nếu chuyển sang chat, cuộn xuống dưới cùng
+                if (viewId === 'chat') {
+                    setTimeout(() => {
+                        const chatBox = document.getElementById('chat-box');
+                        if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+                    }, 100);
+                }
+            });
+        }
+        
+        // Mặc định hiển thị Dashboard khi tải trang
+        document.addEventListener('DOMContentLoaded', () => {
+            changeView('dashboard');
+        });
+
+
+        // MARK: --- FIREBASE AUTH AND LISTENERS ---
+
+        /** Khởi tạo Firebase và đăng nhập */
+        async function initializeAppAndAuth() {
+            try {
+                if (Object.keys(firebaseConfig).length > 0) {
+                    app = initializeApp(firebaseConfig);
+                    db = getFirestore(app);
+                    auth = getAuth(app);
+
+                    // Đăng nhập bằng Custom Token hoặc ẩn danh
+                    if (initialAuthToken) {
+                        await signInWithCustomToken(auth, initialAuthToken);
+                        console.log("Signed in with custom token.");
+                    } else {
+                        await signInAnonymously(auth);
+                        console.log("Signed in anonymously.");
+                    }
+
+                    // Lắng nghe trạng thái Auth
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            document.getElementById('display-user-id').textContent = userId;
+                            isAuthReady = true;
+                            
+                            // Bắt đầu lắng nghe dữ liệu Firestore
+                            listenForMoodData(userId);
+                            listenForChatHistory(userId);
+                            listenForSchedule(userId);
+                        } else {
+                            // Xử lý khi đăng xuất
+                            userId = null;
+                            isAuthReady = false;
+                            document.getElementById('display-user-id').textContent = 'N/A';
+                            console.log("User signed out or failed to authenticate.");
+                        }
+                    });
+                } else {
+                    console.warn("Firebase config is missing. Firestore features will be disabled.");
+                    // Vẫn cho phép ứng dụng chạy mà không có Firestore
+                    isAuthReady = true;
+                }
+            } catch (error) {
+                console.error("Firebase Initialization or Auth Failed:", error);
+                showModal("Lỗi Hệ Thống", "Không thể kết nối với dịch vụ lưu trữ. Vui lòng thử lại.");
+            }
+        }
+        
+        /** Lắng nghe lịch sử Chat từ Firestore */
+        function listenForChatHistory(currentUserId) {
+             if (!db || !currentUserId) return;
+
+             const chatCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/chat_history`);
+             const q = query(chatCollectionRef, orderBy('timestamp', 'desc'), limit(15));
+             
+             onSnapshot(q, (snapshot) => {
+                 chatHistory = [];
+                 snapshot.forEach(doc => {
+                     chatHistory.unshift(doc.data()); // Đảo ngược thứ tự để lấy tin nhắn cũ nhất trước
+                 });
+                 renderChatHistory();
+             }, (error) => {
+                 console.error("Error listening to chat history:", error);
+             });
+         }
+         
+        /** Lắng nghe dữ liệu Tâm Trạng từ Firestore và tính điểm */
+        function listenForMoodData(currentUserId) {
+            if (!db || !currentUserId) return;
+
+            const moodCollectionRef = collection(db, `artifacts/${appId}/users/${currentUserId}/mood_checkins`);
+            // Lấy 7 ngày gần nhất để tính điểm tuần
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+            
+            // Do Firestore không khuyến khích orderBy, ta sẽ query tất cả và filter/sort trong JS
+            const q = query(moodCollectionRef); 
+
+            onSnapshot(q, (snapshot) => {
+                let totalScore = 0;
+                let dailyEntries = [];
+                let latestEntry = null;
+                const now = new Date();
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const entryDate = data.timestamp.toDate ? data.timestamp.toDate() : new Date(data.timestamp);
+
+                    // Chỉ lấy dữ liệu trong 7 ngày qua
+                    if (entryDate >= sevenDaysAgo) {
+                        dailyEntries.push(data);
+                        totalScore += data.score;
+                    }
+                    
+                    // Tìm check-in mới nhất cho Dashboard
+                    if (!latestEntry || entryDate > (latestEntry.timestamp.toDate ? latestEntry.timestamp.toDate() : new Date(latestEntry.timestamp))) {
+                         latestEntry = data;
+                    }
+                });
+                
+                // Cập nhật Dashboard
+                updateDashboard(dailyEntries, totalScore, latestEntry);
+
+            }, (error) => {
+                console.error("Error listening to mood check-ins:", error);
+            });
+        }
+        
+        /** Lắng nghe lịch trình (chỉ cần doc duy nhất) */
+         function listenForSchedule(currentUserId) {
+            if (!db || !currentUserId) return;
+
+            const scheduleDocRef = doc(db, `artifacts/${appId}/users/${currentUserId}/schedule_config/ideal_schedule`);
+            
+            onSnapshot(scheduleDocRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    renderSchedule(data.scheduleJson);
+                } else {
+                    document.getElementById('schedule-list').innerHTML = `<p class="text-gray-500 italic">Chưa có lịch trình được tạo.</p>`;
+                }
+            }, (error) => {
+                console.error("Error listening to schedule:", error);
+            });
+        }
+
+
+        // MARK: --- UI RENDERING & DATA PROCESSING ---
+
+        /** Cập nhật Dashboard (Điểm Tích Cực) */
+        function updateDashboard(entries, totalScore, latestEntry) {
+            const scoreElement = document.getElementById('dashboard-score');
+            const messageElement = document.getElementById('dashboard-score-message');
+            const latestEntryEl = document.getElementById('latest-mood-entry');
+
+            const weeklyAverage = entries.length > 0 ? (totalScore / entries.length) : 0;
+            const positivityScore = Math.round(weeklyAverage * 20); // Scale 1-5 to 0-100
+
+            scoreElement.textContent = positivityScore;
+
+            if (positivityScore >= 80) {
+                messageElement.textContent = "Tuyệt vời! Bạn đang chăm sóc bản thân rất tốt đấy.";
+            } else if (positivityScore >= 60) {
+                messageElement.textContent = "Khá ổn! Hãy duy trì năng lượng tích cực này nhé.";
+            } else if (positivityScore >= 40) {
+                messageElement.textContent = "Cố gắng lên! Dành thêm thời gian cho bản thân nhé.";
+            } else {
+                messageElement.textContent = "Mình ở đây để giúp bạn bắt đầu lại hành trình tích cực.";
+            }
+
+            if (latestEntry) {
+                const moodText = { 1: 'Tệ', 2: 'Ổn', 3: 'Bình Thường', 4: 'Vui', 5: 'Cực Tốt' }[latestEntry.mood] || 'N/A';
+                const dateStr = (latestEntry.timestamp.toDate ? latestEntry.timestamp.toDate() : new Date(latestEntry.timestamp)).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', weekday: 'short', hour: '2-digit', minute: '2-digit' });
+                
+                latestEntryEl.innerHTML = `
+                    <p class="font-bold text-lg text-primary">${dateStr}</p>
+                    <p>Mức độ: <span class="font-semibold">${moodText}</span></p>
+                    <p class="mt-2 border-l-4 border-accent pl-3 italic">"${latestEntry.note || 'Không có ghi chú.'}"</p>
+                `;
+            } else {
+                 latestEntryEl.innerHTML = `<p class="text-gray-600 italic">Chưa có dữ liệu check-in nào.</p>`;
+            }
+        }
+        
+        /** Hiển thị lịch sử Chat */
+        function renderChatHistory() {
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML = ''; // Clear existing content
+
+            chatHistory.forEach(message => {
+                chatBox.appendChild(renderChatBubble(message.text, message.role === 'user'));
+            });
+
+            // Cuộn xuống tin nhắn mới nhất
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        /** Tạo bong bóng Chat HTML */
+        function renderChatBubble(text, isUser) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${isUser ? 'justify-end' : 'justify-start'}`;
+
+            const bubble = document.createElement('div');
+            bubble.className = `${isUser ? 'chat-bubble-user text-white' : 'chat-bubble-ai text-gray-800'} max-w-xs md:max-w-md p-4 shadow-md`;
+            bubble.textContent = text;
+            
+            wrapper.appendChild(bubble);
+            return wrapper;
+        }
+        
+        /** Hiển thị lịch trình đã tạo từ JSON */
+        function renderSchedule(scheduleJson) {
+            const scheduleListEl = document.getElementById('schedule-list');
+            scheduleListEl.innerHTML = '';
+            
+            try {
+                const schedule = JSON.parse(scheduleJson);
+
+                if (Array.isArray(schedule) && schedule.length > 0) {
+                    schedule.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'flex items-start p-4 bg-surface rounded-xl border border-gray-200 shadow-sm';
+                        
+                        let iconClass = 'ph ph-clock text-accent text-2xl mr-3 mt-1';
+                        if (item.activity.toLowerCase().includes('ngủ') || item.activity.toLowerCase().includes('dậy')) {
+                            iconClass = 'ph ph-bed text-primary text-2xl mr-3 mt-1';
+                        } else if (item.activity.toLowerCase().includes('ăn')) {
+                            iconClass = 'ph ph-fork-knife text-green-500 text-2xl mr-3 mt-1';
+                        } else if (item.activity.toLowerCase().includes('học') || item.activity.toLowerCase().includes('làm việc')) {
+                             iconClass = 'ph ph-book-open text-red-500 text-2xl mr-3 mt-1';
+                        } else if (item.activity.toLowerCase().includes('thư giãn') || item.activity.toLowerCase().includes('tập')) {
+                             iconClass = 'ph ph-leaf-heart text-accent text-2xl mr-3 mt-1';
+                        }
+                        
+                        div.innerHTML = `
+                            <i class="${iconClass}"></i>
+                            <div>
+                                <p class="font-bold text-gray-800">${item.time}</p>
+                                <p class="text-gray-600">${item.activity}</p>
+                            </div>
+                        `;
+                        scheduleListEl.appendChild(div);
+                    });
+                } else {
+                     scheduleListEl.innerHTML = `<p class="text-red-500 italic">Không thể hiển thị lịch trình. Dữ liệu không đúng định dạng.</p>`;
+                }
+            } catch (e) {
+                console.error("Lỗi parse JSON lịch trình:", e);
+                scheduleListEl.innerHTML = `<p class="text-red-500 italic">Lỗi: Dữ liệu lịch trình không hợp lệ.</p>`;
+            }
+        }
+
+
+        // MARK: --- MOOD CHECK-IN LOGIC ---
+        
+        let selectedMood = null;
+
+        /** Chọn mức độ tâm trạng */
+        window.selectMood = function(value) {
+            selectedMood = value;
+            const buttons = document.querySelectorAll('.mood-select');
+            buttons.forEach(btn => {
+                btn.classList.remove('ring-4', 'ring-accent', 'ring-opacity-50', 'bg-primary-100');
+                if (parseInt(btn.dataset.value) === value) {
+                    btn.classList.add('ring-4', 'ring-accent', 'ring-opacity-50');
+                }
+            });
+            document.getElementById('mood-value').value = value;
+            document.getElementById('save-mood-btn').disabled = false;
+        }
+
+        /** Lưu dữ liệu Check-in vào Firestore */
+        window.saveMoodCheckin = async function() {
+            if (!isAuthReady || !db || !userId) {
+                showModal("Lỗi", "Hệ thống chưa sẵn sàng. Vui lòng thử lại sau.");
+                return;
+            }
+
+            if (!selectedMood) {
+                showModal("Thiếu thông tin", "Vui lòng chọn mức độ tâm trạng của bạn.");
+                return;
+            }
+
+            const note = document.getElementById('mood-note').value.trim();
+            const challenges = [
+                document.getElementById('challenge1').checked,
+                document.getElementById('challenge2').checked,
+                document.getElementById('challenge3').checked
+            ];
+            
+            // Tính điểm: Mood (1-5) + 1 điểm cho mỗi Challenge hoàn thành
+            const challengeScore = challenges.filter(c => c).length;
+            const finalScore = selectedMood + challengeScore;
+            
+            const data = {
+                mood: selectedMood,
+                note: note,
+                challengesCompleted: challengeScore,
+                score: finalScore,
+                timestamp: new Date()
+            };
+
+            const moodCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/mood_checkins`);
+            const docRef = doc(moodCollectionRef); // Tạo ID tài liệu tự động
+            
+            try {
+                displayLoading('mood-message', true, "Đang lưu dữ liệu...");
+                await setDoc(docRef, data);
+                displayLoading('mood-message', false, "Check-in thành công! Điểm tích cực đã được cập nhật.");
+                
+                // Reset form
+                selectedMood = null;
+                document.getElementById('save-mood-btn').disabled = true;
+                document.getElementById('mood-note').value = '';
+                document.querySelectorAll('.mood-select').forEach(btn => {
+                    btn.classList.remove('ring-4', 'ring-accent', 'ring-opacity-50');
+                });
+                document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                displayLoading('mood-message', false, "Lỗi khi lưu dữ liệu. Vui lòng kiểm tra console.");
+            }
+        }
+
+
+        // MARK: --- AI CHAT AND SCHEDULE LOGIC (GEMINI API) ---
+        
+        let isChatting = false;
+
+        /** Xử lý trò chuyện (Text hoặc Voice) */
+        window.handleChat = async function(isVoice) {
+            if (isChatting) return;
+
+            const chatInput = document.getElementById('chat-input');
+            const userQuery = isVoice ? chatInput.value : chatInput.value.trim();
+
+            if (!userQuery) {
+                showModal("Oups!", "Bạn chưa nhập gì cả. Hãy chia sẻ với mình nhé!");
+                return;
+            }
+
+            isChatting = true;
+            chatInput.value = '';
+            displayLoading('chat-status', true, "AI Đồng Hành đang lắng nghe...");
+            
+            // Thêm tin nhắn người dùng vào UI và history
+            chatHistory.push({ role: "user", text: userQuery, timestamp: new Date() });
+            renderChatHistory();
+
+            // Lưu tin nhắn người dùng vào Firestore (tùy chọn: có thể lưu cả lịch sử, nhưng ở đây chỉ lưu tạm trong session)
+            if (db && userId) {
+                const moodCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/chat_history`);
+                await setDoc(doc(moodCollectionRef), { role: "user", text: userQuery, timestamp: new Date() }).catch(e => console.error("Lỗi lưu chat:", e));
+            }
+
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                // Xây dựng System Prompt cho vai trò chuyên gia tâm lý
+                const systemPrompt = "Bạn là một AI Đồng Hành có tên NAV. Bạn nói chuyện bằng Tiếng Việt với giọng điệu hiện đại, trẻ trung, thân thiện và không phán xét. Nhiệm vụ của bạn là lắng nghe, đưa ra lời khuyên chữa lành tâm lý, phân tích nhẹ nhàng cảm xúc của người dùng, và khuyến khích họ thực hiện các hành động tự chăm sóc bản thân tích cực. Luôn kết thúc bằng một câu hỏi mở để khuyến khích người dùng chia sẻ thêm.";
+                
+                const contents = chatHistory.map(msg => ({
+                    role: msg.role === 'user' ? 'user' : 'model',
+                    parts: [{ text: msg.text }]
+                }));
+                
+                const payload = {
+                    contents: contents,
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    tools: [{ "google_search": {} }] // Kích hoạt grounding
+                };
+
+                const response = await makeApiCall(apiUrl, payload);
+                const result = await response.json();
+                const aiText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, mình đang hơi mệt. Bạn thử hỏi lại nhé!";
+
+                // 1. Thêm tin nhắn AI vào UI và history
+                chatHistory.push({ role: "model", text: aiText, timestamp: new Date() });
+                renderChatHistory();
+                
+                // 2. Lưu tin nhắn AI vào Firestore
+                if (db && userId) {
+                     const moodCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/chat_history`);
+                     await setDoc(doc(moodCollectionRef), { role: "model", text: aiText, timestamp: new Date() }).catch(e => console.error("Lỗi lưu chat:", e));
+                }
+                
+                // 3. Nếu là Voice Chat, phát âm thanh
+                if (isVoice) {
+                    handleTTS(aiText);
+                }
+
+            } catch (error) {
+                console.error("Lỗi gọi Gemini API:", error);
+                showModal("Lỗi AI", "Không thể trò chuyện với AI Đồng Hành lúc này. Vui lòng kiểm tra kết nối.");
+            } finally {
+                isChatting = false;
+                displayLoading('chat-status', false);
+            }
+        }
+        
+        /** Tạo Lịch Trình bằng AI (Sử dụng Structured JSON) */
+        window.generateSchedule = async function() {
+            if (isChatting) return;
+            const userInfo = document.getElementById('user-info').value.trim();
+
+            if (!userInfo) {
+                showModal("Thiếu thông tin", "Hãy kể cho mình nghe về sở thích, mục tiêu, và áp lực của bạn nhé!");
+                return;
+            }
+
+            isChatting = true;
+            displayLoading('schedule-status', true, "AI đang tạo lịch trình lý tưởng cho bạn...");
+            const btn = document.getElementById('generate-schedule-btn');
+            btn.disabled = true;
+
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+                
+                const systemPrompt = "Bạn là một chuyên gia lập kế hoạch cá nhân. Dựa trên thông tin người dùng cung cấp, hãy tạo ra một lịch trình hàng ngày lý tưởng, tập trung vào cân bằng công việc/học tập và tự chăm sóc bản thân (self-care). Bạn phải trả lời bằng một mảng JSON tuân thủ schema được cung cấp. Không trả lời bằng bất kỳ văn bản giải thích nào khác ngoài JSON. Ngôn ngữ phải là Tiếng Việt.";
+                
+                const userQuery = `Thông tin người dùng: "${userInfo}". Hãy tạo một lịch trình chi tiết (ít nhất 8 mục) từ lúc thức dậy đến lúc đi ngủ.`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            description: "Mảng các hoạt động trong lịch trình hàng ngày.",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "time": { "type": "STRING", "description": "Thời gian bắt đầu hoạt động (ví dụ: '7:00 AM')" },
+                                    "activity": { "type": "STRING", "description": "Tên hoạt động chi tiết (ví dụ: 'Ăn sáng nhẹ và thiền 5 phút')" }
+                                },
+                                required: ["time", "activity"],
+                                "propertyOrdering": ["time", "activity"]
+                            }
+                        }
+                    }
+                };
+                
+                const response = await makeApiCall(apiUrl, payload);
+                const result = await response.json();
+                
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                
+                if (jsonText) {
+                    renderSchedule(jsonText);
+                    displayLoading('schedule-status', false, "Lịch trình lý tưởng đã sẵn sàng!");
+                    
+                    // Lưu lịch trình vào Firestore
+                    if (db && userId) {
+                        const scheduleDocRef = doc(db, `artifacts/${appId}/users/${userId}/schedule_config/ideal_schedule`);
+                        await setDoc(scheduleDocRef, { scheduleJson: jsonText, timestamp: new Date() }).catch(e => console.error("Lỗi lưu lịch trình:", e));
+                    }
+                    
+                } else {
+                    throw new Error("Không nhận được JSON hợp lệ từ AI.");
+                }
+
+            } catch (error) {
+                console.error("Lỗi tạo lịch trình:", error);
+                displayLoading('schedule-status', false, "Lỗi: Không thể tạo lịch trình. Vui lòng thử lại.");
+                showModal("Lỗi AI", "Không thể tạo lịch trình. Hãy kiểm tra lại thông tin bạn cung cấp.");
+            } finally {
+                isChatting = false;
+                btn.disabled = false;
+            }
+        }
+        
+        
+        /** Xử lý Text-to-Speech (TTS) */
+        let audioContext = null;
+        
+        async function handleTTS(textToSpeak) {
+            if (!textToSpeak) return;
+
+            try {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+                
+                // Sử dụng giọng nói thân thiện, ví dụ: 'Puck' (Upbeat)
+                const payload = {
+                    contents: [{
+                        parts: [{ text: textToSpeak }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: "Puck" }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                // Hiển thị trạng thái đang phát
+                document.getElementById('chat-status').textContent = "Đang nói...";
+
+                const response = await makeApiCall(apiUrl, payload);
+                const result = await response.json();
+                
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 16000;
+                    
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+                    
+                    audio.onended = () => {
+                         document.getElementById('chat-status').textContent = "";
+                    };
+                    
+                } else {
+                    console.error("Lỗi: Không nhận được dữ liệu âm thanh hợp lệ.");
+                    document.getElementById('chat-status').textContent = "Lỗi phát âm thanh.";
+                }
+            } catch (error) {
+                console.error("Lỗi gọi TTS API:", error);
+                document.getElementById('chat-status').textContent = "Lỗi phát âm thanh.";
+            }
+        }
+        
+        
+        // MARK: --- BASE64/WAV UTILITIES (For TTS) ---
+        
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(int16Array, sampleRate) {
+            const numChannels = 1;
+            const bytesPerSample = 2; // Int16
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+
+            const buffer = new ArrayBuffer(44 + int16Array.byteLength);
+            const view = new DataView(buffer);
+
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + int16Array.byteLength, true);
+            writeString(view, 8, 'WAVE');
+            
+            // FMT sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true); // Sub-chunk size (16 for PCM)
+            view.setUint16(20, 1, true); // Audio format (1 for PCM)
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, 16, true); // Bits per sample (16)
+
+            // Data sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, int16Array.byteLength, true);
+            
+            // PCM data
+            const dataOffset = 44;
+            for (let i = 0; i < int16Array.length; i++) {
+                view.setInt16(dataOffset + i * 2, int16Array[i], true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        
+        // MARK: --- API CALL WITH EXPONENTIAL BACKOFF ---
+        
+        async function makeApiCall(url, payload, maxRetries = 3) {
+             for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        return response;
+                    } else if (response.status === 429 && attempt < maxRetries - 1) {
+                        // Rate limit error, wait and retry
+                        const delay = Math.pow(2, attempt) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    } else {
+                        // Other HTTP error
+                        throw new Error(`API failed with status ${response.status}: ${await response.text()}`);
+                    }
+                } catch (error) {
+                    if (attempt < maxRetries - 1) {
+                         const delay = Math.pow(2, attempt) * 1000;
+                         await new Promise(resolve => setTimeout(resolve, delay));
+                         continue;
+                    }
+                    throw error;
+                }
+             }
+             throw new Error("API call failed after multiple retries.");
+        }
+
+
+        // MARK: --- GAME (BREATHING) AND AUDIO LOGIC ---
+
+        let breathingInterval;
+        let isBreathing = false;
+        
+        /** Bài tập Hộp Thở */
+        window.startBreathing = function() {
+            if (isBreathing) return;
+            isBreathing = true;
+            const circle = document.getElementById('breathing-circle');
+            const btn = document.getElementById('breathing-btn');
+            
+            btn.disabled = true;
+            btn.textContent = 'Đang Thở...';
+
+            function step(instruction, duration, scale) {
+                circle.textContent = instruction;
+                circle.style.transform = `scale(${scale})`;
+                circle.style.transitionDuration = `${duration}s`;
+            }
+
+            let phase = 0;
+
+            function runBreathingCycle() {
+                switch(phase % 4) {
+                    case 0: // Hít vào (4s)
+                        step('Hít vào (4s)', 4, 1.5);
+                        phase++;
+                        setTimeout(runBreathingCycle, 4000);
+                        break;
+                    case 1: // Giữ (7s)
+                        step('Giữ (7s)', 0.5, 1.5);
+                        phase++;
+                        setTimeout(runBreathingCycle, 7000);
+                        break;
+                    case 2: // Thở ra (8s)
+                        step('Thở ra (8s)', 8, 1);
+                        phase++;
+                        setTimeout(runBreathingCycle, 8000);
+                        break;
+                    case 3: // Nghỉ (1s)
+                        step('Nghỉ', 0.5, 1);
+                        phase++;
+                        setTimeout(runBreathingCycle, 1000); // 1 second pause
+                        break;
+                }
+            }
+
+            // Bắt đầu chu kỳ
+            runBreathingCycle(); 
+            
+            // Tự động dừng sau 60 giây (ví dụ)
+            breathingInterval = setTimeout(() => {
+                isBreathing = false;
+                btn.disabled = false;
+                btn.innerHTML = `<i class="ph ph-heartbeat mr-2"></i> Bắt Đầu Thở`;
+                circle.textContent = 'Hoàn Thành!';
+                circle.style.transform = 'scale(1)';
+                
+                // Cần làm rõ logic dừng lại nếu muốn dừng giữa chừng. Ở đây, ta chỉ dừng việc lập lịch gọi lại.
+                // Để đơn giản, ta chỉ cho 1 chu kỳ chạy trong ví dụ này. Để chạy liên tục, cần dùng setInterval và clearInterval.
+                // Ở đây, tôi sẽ dùng setInterval để chạy liên tục và cho phép người dùng dừng thủ công.
+                
+                // Thay đổi logic: Dùng setInterval để dễ dừng
+                clearInterval(breathingInterval); 
+                let totalTime = 4 + 7 + 8 + 1; // 20s per cycle
+                breathingInterval = setInterval(runBreathingCycle, totalTime * 1000); 
+                
+                // Tự động dừng sau 3 chu kỳ (60s)
+                setTimeout(stopBreathing, 60000);
+
+            }, 200); // Wait for initial transition to start
+        }
+        
+        function stopBreathing() {
+            if (breathingInterval) {
+                clearInterval(breathingInterval);
+            }
+             isBreathing = false;
+            const circle = document.getElementById('breathing-circle');
+            const btn = document.getElementById('breathing-btn');
+            btn.disabled = false;
+            btn.innerHTML = `<i class="ph ph-heartbeat mr-2"></i> Bắt Đầu Thở`;
+            circle.textContent = 'Bắt Đầu';
+            circle.style.transform = 'scale(1)';
+        }
+
+
+        // Nhạc nền thư giãn (Tone.js không hoạt động trong Canvas, nên dùng Audio cơ bản)
+        const backgroundAudio = new Audio('MTP.mp3'); // URL nhạc nền thư giãn (Ví dụ)
+        backgroundAudio.loop = true;
+        let isAudioPlaying = false;
+
+        window.toggleAudio = function() {
+            const icon = document.getElementById('audio-icon');
+            if (isAudioPlaying) {
+                backgroundAudio.pause();
+                icon.classList.remove('ph-speaker-simple-high');
+                icon.classList.add('ph-speaker-simple-slash');
+                isAudioPlaying = false;
+            } else {
+                backgroundAudio.play().catch(e => console.error("Lỗi phát nhạc:", e));
+                icon.classList.remove('ph-speaker-simple-slash');
+                icon.classList.add('ph-speaker-simple-high');
+                isAudioPlaying = true;
+            }
+        }
+        window.addEventListener('load', () => {
+             initializeAppAndAuth();
+             document.getElementById('chat-input').addEventListener('keypress', function(e) {
+                 if (e.key === 'Enter') {
+                     handleChat(false);
+                 }
+             });
+        });
+    </script>
+</body>
+</html>
